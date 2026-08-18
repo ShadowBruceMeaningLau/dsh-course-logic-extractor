@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "mupdf": "^1.28.0"
+  }
+}

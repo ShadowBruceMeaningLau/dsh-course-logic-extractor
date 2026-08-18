@@ -1,0 +1,8 @@
+# dsh-course-logic-extractor bundle patch — mounts the host row only.
+# The host half materializes the bundled agent preset into the DSH user
+# preset root (~/.dsh/.agent-presets), where the roster discovers it.
+# The preset's own composition stays a pure preset directory (agent-plane),
+# never host rows.
+- insert:
+    - id: course-logic-extractor
+      name: 'dsh-course-logic-extractor'

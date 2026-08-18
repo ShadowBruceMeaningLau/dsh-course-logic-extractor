@@ -1,0 +1,220 @@
+﻿# The `course-logic-extractor` (课程逻辑提取器) agent preset — the full
+# `standard` toolset minus plan mode, tuned for one mission: given a course's
+# materials, reverse-engineer its instructional design into a self-consistent
+# logical chain — what is taught first, what follows, and why each step sits
+# where it does — so the learner grasps the course's architecture before
+# studying it in detail.
+#
+# Changes vs `standard`:
+#   - persona: the course-logic-extraction mission (below), in Chinese;
+#   - an isolated bundled skill `course-logic-extract`: its `SKILL.md` is the
+#     authoritative methodology (see the skills section), kept apart from
+#     other skill roots;
+#   - plan mode removed: this agent analyzes course design, it does not plan
+#     implementations;
+#   - everything else stays: filesystem + shell for material inventory, goals
+#     for long extractions, compaction for high reading volume, and
+#     delegation/workflows so large courses can be analyzed per module by
+#     subagents in parallel and then synthesized.
+#
+# This file is an AGENT-PLANE composition. The roster mounts it ONCE under a
+# standing scope; every session naming it joins by scope parentage, so the
+# tools and prompt sections registered here cover each joined agent while a
+# session's own state stays keyed per Session/Agent inside the plugins. The
+# host composition (`base.cordis.yml` + `web.cordis.yml`) keeps everything a
+# preset must not own: the registries themselves, the sandbox and approval
+# stack, persistence, and the model route.
+#
+# A service row here MUST sit inside a group carrying an `isolate` realm.
+# Without one it publishes into the root realm, where it is process-global —
+# another preset publishing the same name collides, and a host reader would
+# resolve one preset's instance for every session; `dsh-agent-presets` rejects
+# that at mount. `true` means an entry-local realm: this standing mount's own
+# private instance, apart from every other preset's. (A shared label does NOT
+# pool instances — `provide()` throws on the second registration under the
+# same realm symbol; labels join REALMS, and are not what this file needs.)
+
+# ── identity ────────────────────────────────────────────────────────────────
+
+# The preset's own persona, shadowing the deployment default for this agent.
+# `{{model}}` and `{{cwd}}` resolve from the agent's own route and workspace.
+- id: persona
+  name: '@deepseek-ai/dsh-persona'
+  config:
+    text: |-
+      You are a coding agent powered by the {{model}} model. Your working directory is {{cwd}}.
+
+      你的专属使命是「课程逻辑提取」：给定一门课程的资料（教学大纲、讲义、课件、视频字幕、习题、实验、项目等），还原这门课的设计逻辑——先教什么、后教什么、每个环节为什么放在那里、环节之间如何衔接、设计者想让学生沿着什么路径走到什么能力终点，最终交付一条自洽、清晰、透彻的课程逻辑链，让学习者在正式深入课程之前就对「这门课为什么这样组织」了然于胸。
+
+      开始任何提取任务前，先用 skill 工具加载 `course-logic-extract` 技能，并严格按其流水线执行：任务澄清 → 资料盘点 → 骨架提取 → 顺序与依赖分析 → 设计意图推断 → 自洽性校验 → 交付报告。产出是设计逻辑分析，不是内容笔记：你回答的是「这门课为什么这样设计」，而不是「这门课讲了什么」。资料明说的事实与你的推断必须分开标注，无法从资料确证的结论列入「待确认」。`SKILL.md` 是方法论的唯一权威来源——本摘要与它冲突时以技能为准。
+
+- id: agent-instructions
+  name: '@deepseek-ai/dsh-agent-instructions'
+  config:
+    maxBytes: 65536
+
+# ── shell ───────────────────────────────────────────────────────────────────
+
+# `shell-env` stays in the HOST composition: it publishes `DSH_WEB_URL`/
+# `DSH_WEB_MODE`, and a host row that injects a service is the criterion for
+# host-plane ownership. Both shell tools consume the host registry from here;
+# their executors are host-plane too.
+- id: tool-bash
+  name: '@deepseek-ai/dsh-tool-bash'
+  disabled: !!js process.platform === 'win32'
+
+- id: tool-pwsh
+  name: '@deepseek-ai/dsh-tool-pwsh'
+  disabled: !!js process.platform !== 'win32'
+
+# ── filesystem ──────────────────────────────────────────────────────────────
+
+# Both register into the host `tools` registry and provide nothing, so they
+# need no realm. The `fs` service and its policy stay in the host.
+- id: tool-fs
+  name: '@deepseek-ai/dsh-tool-fs'
+
+- id: tool-fs-search
+  name: '@deepseek-ai/dsh-tool-fs-search'
+  config:
+    sampleOverCapGlobResults: false
+
+# ── background jobs ────────────────────────────────────────────────────────
+
+# Only the model-facing controls; the task registry stays on the host plane.
+- id: tool-jobs
+  name: '@deepseek-ai/dsh-tool-jobs'
+
+# ── skills (isolated) ───────────────────────────────────────────────────────
+
+# `skill-filesystem` registers into THIS preset's layer of the host skill
+# registry. `includeDefaultRoots: false` makes it an isolated custom-root
+# provider: the agent sees only the bundled `course-logic-extract` skill —
+# nothing from the user root (`~/.dsh/skills`) or project roots. `baseUrl` is
+# the preset's own directory, so the root resolves wherever the preset is
+# installed.
+- id: skill-filesystem
+  name: '@deepseek-ai/dsh-skill-filesystem'
+  config:
+    includeDefaultRoots: false
+    customSkillDirs:
+      - !!js "process.getBuiltinModule('node:url').fileURLToPath(new URL('skills/', baseUrl))"
+
+- id: tool-skill
+  name: '@deepseek-ai/dsh-tool-skill'
+
+# ── goals ───────────────────────────────────────────────────────────────────
+
+# Only the model-facing tool. The goal service and its session driver stay on
+# the host plane. Long extractions should be tracked as a same-session goal.
+- id: tool-goal
+  name: '@deepseek-ai/dsh-tool-goal'
+
+# ── compaction ──────────────────────────────────────────────────────────────
+
+# `compaction-basic` reads `toolResultPrune` through `ctx.get`, so the pruner
+# must share this realm rather than sit outside it. The token meter stays on
+# the host plane.
+- id: compaction
+  name: cordis:group
+  group: true
+  isolate:
+    compaction: true
+    toolResultPruner: true
+  config:
+    - id: compaction-basic
+      name: '@deepseek-ai/dsh-compaction-basic'
+
+    - id: command-compact
+      name: '@deepseek-ai/dsh-command-compact'
+
+    - id: tool-result-pruner
+      name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+      config:
+        thresholdChars: 8192
+        headChars: 4096
+        tailChars: 1024
+
+# ── delegation and workflows ────────────────────────────────────────────────
+
+# The `subagents` registry and its spawn/fork backends live in the HOST
+# composition. This preset contributes the delegation TOOLS. `workflows` is
+# read by nothing outside an agent, so every row that reaches it shares one
+# entry-local realm here.
+- id: delegation
+  name: cordis:group
+  group: true
+  isolate:
+    workflowEngine: true
+  config:
+    - id: tool-subagent-control
+      name: '@deepseek-ai/dsh-tool-subagent-control'
+
+    - id: tool-subagent-list-agents
+      name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
+
+    - id: tool-subagent
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: spawn
+        toolName: subagent
+        backgroundMode: continuable
+
+    - id: tool-subagent-fork
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: fork
+        toolName: subagent_fork
+        backgroundMode: continuable
+
+    # Product providers are host-plane singletons. Remove `disabled` from an
+    # ordinary tool row to expose that product to this agent.
+    - id: tool-subagent-codex
+      name: '@deepseek-ai/dsh-tool-subagent'
+      disabled: true
+      config:
+        provider: codex
+        toolName: subagent_codex
+        enableRunInBackground: false
+        maxDepth: provider-managed
+
+    - id: tool-subagent-claude-code
+      name: '@deepseek-ai/dsh-tool-subagent'
+      disabled: true
+      config:
+        provider: claude-code
+        toolName: subagent_claude_code
+        enableRunInBackground: false
+        maxDepth: provider-managed
+
+    - id: workflow-worker-thread
+      name: '@deepseek-ai/dsh-workflow-worker-thread'
+      config:
+        provider: spawn
+
+    - id: tool-workflow
+      name: '@deepseek-ai/dsh-tool-workflow'
+
+    - id: tool-ralph
+      name: '@deepseek-ai/dsh-tool-ralph'
+      config:
+        subagentProvider: spawn
+        maxRounds: 64
+
+# ── remaining model-facing rows ─────────────────────────────────────────────
+
+- id: tool-ask-user
+  name: '@deepseek-ai/dsh-tool-ask-user'
+
+- id: tool-todo
+  name: '@deepseek-ai/dsh-tool-todo'
+  config:
+    allowParallelInProgress: true
+
+# The `web` service and its search provider stay in the host composition; only
+# the model-facing tool is per-session.
+- id: tool-web
+  name: '@deepseek-ai/dsh-tool-web'
+  config:
+    fetch: false
+    searchTimeoutMs: 60000

@@ -1,0 +1,8 @@
+# 日志与系统文件
+*.log
+Thumbs.db
+Desktop.ini
+~$*
+
+# 注意：preset/ 内脚本的 node_modules（mupdf）是故意入库的——
+# 预设需要开箱即用，不依赖安装时联网。请勿在此忽略 node_modules。
