@@ -17,8 +17,9 @@ if (!inArg || !outArg) {
 }
 
 function convertFormulas(s) {
-  s = s.replace(/\\\[/g, '$$').replace(/\\\]/g, '$$')
-  s = s.replace(/\\\(/g, '$').replace(/\\\)/g, '$')
+  // 注意：String.replace 的替换串里 '$$' 是特殊模式（表示单个 $），必须用函数返回字面 '$$'
+  s = s.replace(/\\\[/g, () => '$$').replace(/\\\]/g, () => '$$')
+  s = s.replace(/\\\(/g, () => '$').replace(/\\\)/g, () => '$')
   return s
 }
 

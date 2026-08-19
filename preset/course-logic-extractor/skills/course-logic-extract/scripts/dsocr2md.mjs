@@ -1,11 +1,10 @@
 #!/usr/bin/env node
-// dsocr2md.mjs — 文档/图片 → Markdown OCR。
-// 默认模型：deepseek-ai/DeepSeek-OCR（硅基流动免费托管，官方提示词）；
-// --model= 可指定硅基流动上其他兼容模型。
-// Usage: node dsocr2md.mjs <imagesDir|file.pdf> [outDir] [--model=deepseek-ai/DeepSeek-OCR] [--pages=1-20] [--workers=4] [--delay=2000]
+// dsocr2md.mjs — 文档/图片 → Markdown OCR（GLM-OCR，智谱 bigmodel）。
+// Usage: node dsocr2md.mjs <imagesDir|file.pdf> [outDir] [--pages=1-20] [--workers=4] [--delay=2000]
 // - 图片：data URI 直传；PDF：≤100 页整本直传，>100 页用 mupdf 拆页（--pages=起-止）；
 // - 空响应/5xx/402/429 自动重试 3 次；已存在的 .md 自动跳过（断点续跑）；
 // - --workers=N：并发池（默认 1，建议 4-6）。
+// Key：环境变量 ZHIPU_API_KEY，或 ~/.dsh/free-vision.json 的 zhipuApiKey 字段。
 import { readFile, writeFile, readdir, mkdir, access, stat } from 'node:fs/promises'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -15,101 +14,71 @@ const args = process.argv.slice(2)
 let delayMs = 2000
 let workers = 1
 let pagesArg = ''
-let modelArg = ''
 for (const a of args) {
   if (a.startsWith('--delay=')) delayMs = Math.max(0, Number(a.slice(8)) || 0)
   else if (a.startsWith('--workers=')) workers = Math.max(1, Math.min(12, Number(a.slice(10)) || 1))
   else if (a.startsWith('--pages=')) pagesArg = a.slice(8)
-  else if (a.startsWith('--model=')) modelArg = a.slice(8)
 }
 const positional = args.filter((a) => !a.startsWith('--'))
 const [inputArg, outArg] = positional
 if (!inputArg) {
-  console.error('usage: node dsocr2md.mjs <imagesDir|file.pdf> [outDir] [--model=deepseek-ai/DeepSeek-OCR] [--pages=1-20] [--workers=4]')
+  console.error('usage: node dsocr2md.mjs <imagesDir|file.pdf> [outDir] [--pages=1-20] [--workers=4] [--delay=2000]')
   process.exit(2)
 }
 const inputPath = path.resolve(inputArg)
-const MODEL = modelArg || 'deepseek-ai/DeepSeek-OCR'
 
-function loadSiliconflowKey() {
-  let key = process.env.SILICONFLOW_API_KEY || ''
+const ZHIPU_BASE = 'https://open.bigmodel.cn/api/paas/v4/layout_parsing'
+const MODEL = 'glm-ocr'
+const MAX_IMG_BYTES = 10 * 1024 * 1024 // 图片 ≤10MB
+const MAX_PDF_BYTES = 50 * 1024 * 1024 // PDF ≤50MB
+const MAX_PDF_PAGES = 100 // PDF ≤100 页
+
+function loadZhipuKey() {
+  let key = process.env.ZHIPU_API_KEY || ''
   if (!key) {
     try {
       const raw = readFileSync(path.join(os.homedir(), '.dsh', 'free-vision.json'), 'utf8')
-      key = JSON.parse(raw)?.apiKey || ''
-    } catch {}
+      key = JSON.parse(raw)?.zhipuApiKey || ''
+    } catch { /* 忽略读取失败 */ }
   }
   if (!key) {
-    console.error('dsocr2md: 未找到 SiliconFlow API key（SILICONFLOW_API_KEY 或 ~/.dsh/free-vision.json）')
+    console.error('dsocr2md: 未找到智谱 API Key（环境变量 ZHIPU_API_KEY 或 ~/.dsh/free-vision.json 的 zhipuApiKey 字段）')
     process.exit(2)
   }
   return key
 }
 
-const SF_KEY = loadSiliconflowKey()
-const SF_PROMPT_OCR = '<image>\n<|grounding|>Convert the document to markdown.'
-const SF_PROMPT_VLM = '请把上述图片转换为markdown代码：文本一字不差，用markdown语法尽量还原原图排版（标题层级、列表、表格；数学公式用 $...$ 或 $$...$$）。只输出markdown正文，不要任何解释。'
+const ZHIPU_KEY = loadZhipuKey()
 
-function clean(content) {
-  let s = content
-  while (true) {
-    const a = s.indexOf('<|ref|>')
-    if (a < 0) break
-    const rEnd = s.indexOf('<|/ref|>', a)
-    if (rEnd < 0) break
-    const d = s.indexOf('<|det|>', rEnd)
-    const dEnd = s.indexOf('<|/det|>', d < 0 ? rEnd : d)
-    if (dEnd < 0) { s = s.slice(0, a) + s.slice(rEnd + 9); continue }
-    s = s.slice(0, a) + s.slice(dEnd + 9)
-  }
-  s = s.split('<|ref|>').join('').split('<|/ref|>').join('')
-  while (s.includes('<|det|>')) {
-    const a = s.indexOf('<|det|>')
-    const b = s.indexOf('<|/det|>', a)
-    if (b < 0) break
-    s = s.slice(0, a) + s.slice(b + 9)
-  }
-  s = s.replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n')
-  return s.trim()
-}
-
-// 硅基流动：chat/completions（DeepSeek-OCR 用官方提示词；其他模型用中文转写提示词）
-async function sfChat(dataUrl) {
-  const prompt = MODEL.toLowerCase().includes('deepseek-ocr') ? SF_PROMPT_OCR : SF_PROMPT_VLM
-  const res = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+// GLM-OCR 专用端点 layout_parsing：body 为 {model, file}，file 为 data URI（图片 ≤10MB / PDF ≤50MB ≤100 页）
+async function zhipuLayoutParsing(dataUrl) {
+  const res = await fetch(ZHIPU_BASE, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SF_KEY },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [{ role: 'user', content: [
-        { type: 'image_url', image_url: { url: dataUrl } },
-        { type: 'text', text: prompt },
-      ]}],
-      temperature: 0.1,
-    }),
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + ZHIPU_KEY },
+    body: JSON.stringify({ model: MODEL, file: dataUrl }),
     signal: AbortSignal.timeout(600000),
   })
   const text = await res.text()
   if (!res.ok) {
     let msg = 'HTTP ' + res.status
-    try { msg += ': ' + (JSON.parse(text)?.message || text.slice(0, 200)) } catch { msg += ': ' + text.slice(0, 200) }
+    try { msg += ': ' + (JSON.parse(text)?.error?.message || text.slice(0, 200)) } catch { msg += ': ' + text.slice(0, 200) }
     throw new Error(msg)
   }
   const j = JSON.parse(text)
-  const c = j?.choices?.[0]?.message?.content
-  if (c == null || String(c).trim() === '') throw new Error('空响应（余额不足或模型暂不可用）')
-  return clean(String(c))
+  const md = j?.md_results
+  if (typeof md !== 'string' || md.trim() === '') throw new Error('空响应（余额不足或模型暂不可用）')
+  return md.trim()
 }
 
 async function callOcr(dataUrl) {
   let lastErr
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      return await sfChat(dataUrl)
+      return await zhipuLayoutParsing(dataUrl)
     } catch (error) {
       lastErr = error
       if (attempt < 3) {
-        console.log('  retry ' + attempt + '/3: ' + (error && error.message ? String(error.message).slice(0, 100) : String(error)))
+        console.log('  retry ' + attempt + '/3: ' + String(error?.message || error).slice(0, 100))
         await new Promise((r) => setTimeout(r, 5000))
       }
     }
@@ -168,7 +137,12 @@ if (isPdf) {
     pdfBuf = Buffer.from(typeof saved.asUint8Array === 'function' ? saved.asUint8Array() : saved)
     tag = 'p' + String(s).padStart(3, '0') + '-' + String(e).padStart(3, '0')
   } else {
+    if (total > MAX_PDF_PAGES) {
+      console.error('dsocr2md: 该 PDF 共 ' + total + ' 页，超过直传上限 ' + MAX_PDF_PAGES + ' 页——请用 --pages=起-止 分批（单次 ≤' + MAX_PDF_PAGES + ' 页），或先渲染 PNG 再逐页转录')
+      process.exit(2)
+    }
     pdfBuf = await readFile(inputPath)
+    if (pdfBuf.length > MAX_PDF_BYTES) { console.error('dsocr2md: PDF 超过 50MB 限制，请用 --pages 分批'); process.exit(2) }
     tag = 'full'
   }
   const outPath = path.join(outRoot, path.basename(inputPath).replace(/\.pdf$/i, '') + '_' + tag + '.md')
@@ -179,7 +153,7 @@ if (isPdf) {
       await mkdir(path.dirname(outPath), { recursive: true })
       await writeFile(outPath, md + '\n', 'utf8')
       ok++; console.log('ok   pdf ' + tag + ' (' + total + '页) -> ' + outPath + ' (' + md.length + ' chars)')
-    } catch (error) { failed++; console.log('fail pdf ' + tag + ': ' + (error && error.message ? error.message : String(error))) }
+    } catch (error) { failed++; console.log('fail pdf ' + tag + ': ' + (error?.message || error)) }
   }
 } else if (isDir) {
   const files = await walk(inputPath)
@@ -193,6 +167,8 @@ if (isPdf) {
       const outPath = path.join(outRoot, rel.replace(/\.[^.]+$/, '.md'))
       try { await access(outPath); skipped++; console.log('skip ' + rel); continue } catch {}
       try {
+        const fileStat = await stat(file)
+        if (fileStat.size > MAX_IMG_BYTES) { failed++; console.log('fail ' + rel + ': 图片超过 10MB 限制'); continue }
         const ext = path.extname(file).toLowerCase()
         const mime = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png'
         const md = await callOcr(`data:${mime};base64,${(await readFile(file)).toString('base64')}`)
@@ -200,7 +176,7 @@ if (isPdf) {
         await mkdir(path.dirname(outPath), { recursive: true })
         await writeFile(outPath, md + '\n', 'utf8')
         ok++; console.log('ok   ' + rel + ' [' + MODEL + '] -> ' + outPath + ' (' + md.length + ' chars)')
-      } catch (error) { failed++; console.log('fail ' + rel + ': ' + (error && error.message ? error.message : String(error))) }
+      } catch (error) { failed++; console.log('fail ' + rel + ': ' + (error?.message || error)) }
       if (workers === 1 && files.length > 1) await new Promise((r) => setTimeout(r, delayMs))
     }
   }
@@ -211,13 +187,14 @@ if (isPdf) {
   const outPath = path.join(outRoot, rel.replace(/\.[^.]+$/, '.md'))
   try { await access(outPath); skipped++; console.log('skip ' + rel) } catch {
     try {
+      if ((await stat(inputPath)).size > MAX_IMG_BYTES) { failed++; console.log('fail ' + rel + ': 图片超过 10MB 限制') } else {
       const ext = path.extname(inputPath).toLowerCase()
       const mime = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png'
       const md = await callOcr(`data:${mime};base64,${(await readFile(inputPath)).toString('base64')}`)
       await mkdir(path.dirname(outPath), { recursive: true })
       await writeFile(outPath, md + '\n', 'utf8')
-      ok++; console.log('ok   ' + rel + ' [' + MODEL + '] -> ' + outPath + ' (' + md.length + ' chars)')
-    } catch (error) { failed++; console.log('fail ' + rel + ': ' + (error && error.message ? error.message : String(error))) }
+      ok++; console.log('ok   ' + rel + ' [' + MODEL + '] -> ' + outPath + ' (' + md.length + ' chars)') }
+    } catch (error) { failed++; console.log('fail ' + rel + ': ' + (error?.message || error)) }
   }
 } else {
   console.error('dsocr2md: 不支持的输入：' + inputPath)

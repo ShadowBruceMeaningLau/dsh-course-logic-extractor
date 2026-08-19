@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.4.0 — 2026-08-19
+
+### 新增
+- **OCR 引擎切换为 GLM-OCR**（智谱 `glm-ocr`，专用端点 `layout_parsing`）：文本/公式/表格识别 SOTA 级；Key 走 `~/.dsh/free-vision.json` 的 `zhipuApiKey` 或 `ZHIPU_API_KEY`；≤100 页且 ≤50MB 的 PDF 支持整本直传；图片 ≤10MB
+- **模块地图 canvas 必需化**：每门课必产 `1-报告/<课程名>-模块地图.canvas`（Obsidian 原生画布，与报告第 3 节 mermaid 一一对应）
+- **更新模式**：教材改版/补页走增量流程（`--pages` 区间重转录 → 重合并 → 只重做受影响分卷 → 指纹对比提示差异）
+- **单元测试**（`scripts/test/`，node:test）：combine 合并/公式转换、verify 对账统计、stylevol 排序与 TOC 感知校验；`npm test` 一键运行
+- **CI**（GitHub Actions）：push/PR 自动跑测试，tag `v*` 自动创建 Release
+
+### 修复
+- **combine.mjs 公式转换 bug**：`String.replace` 的 `'$$'` 替换串是特殊模式（表示单个 `$`），导致行间公式 `\[...\]` 被转成 `$...$` 而非 `$$...$$`——改用函数返回字面 `'$$'`（问题自 v1.0 潜伏，由新增测试暴露）
+
 ## v1.3.0 — 2026-08-19
 
 ### 新增

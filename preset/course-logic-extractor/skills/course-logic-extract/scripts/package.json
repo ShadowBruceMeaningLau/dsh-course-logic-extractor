@@ -1,4 +1,10 @@
 {
+  "name": "course-logic-extract-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/"
+  },
   "dependencies": {
     "mupdf": "^1.28.0"
   }
