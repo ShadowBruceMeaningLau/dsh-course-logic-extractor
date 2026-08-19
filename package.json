@@ -1,8 +1,8 @@
 {
   "name": "dsh-course-logic-extractor",
-  "version": "1.5.8",
+  "version": "1.5.9",
   "type": "module",
-  "description": "閵嗗矁顕崇粙瀣偓鏄忕帆閹绘劕褰囬崳銊ｂ偓宄歡ent preset as a dsh plugin: given a course's materials, reverse-engineer its instructional design into a self-consistent logical chain. Installs the course-logic-extractor preset into the DSH preset roster automatically.",
+  "description": "闁靛棗鐭侀宕囩矙鐎ｎ喒鍋撻弰蹇曞竼闁圭粯鍔曡ぐ鍥闯閵婏絺鍋撳畡姝nt preset as a dsh plugin: given a course's materials, reverse-engineer its instructional design into a self-consistent logical chain. Installs the course-logic-extractor preset into the DSH preset roster automatically.",
   "main": "lib/index.js",
   "exports": {
     ".": { "default": "./lib/index.js" },
