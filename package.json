@@ -1,8 +1,8 @@
 {
   "name": "dsh-course-logic-extractor",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "type": "module",
-  "description": "闂傚倸鍊搁崐椋庢濮橆剦鐒界憸宥堢亱濠德板€曢幊蹇涘磿濡も偓閵嗘帒顫濋敐鍛婵＄偑鍊戦崹娲嚌妤ｅ啯鍋╅柣鎴ｆ閻愬﹪鏌嶉崫鍕殶闁告﹩鍨跺铏规嫚閹绘帒姣愮紓鍌氱Т濡繂鐣锋导鏉戠婵°倐鍋撶痪鎯ь煼閺岀喖骞戦幇闈涙闂佸憡鐟ラ敃顏堟偂椤愶箑鐐婇柕濠忓椤︺儳绱撴担瑙勭叆闁靛牏顭堥～蹇撁洪鍕祶濡炪倖鎸炬慨瀵哥箔閿熺姵鈷戦柛娑橈攻閳锋劖绻涢崣澶岀疄濠碉紕鏁婚獮鍥级鐠恒劌鈧偛顪冮妶鍡楀潑闁稿鎹囧濠氬磼閵堝懐浠搁梺鍝勬湰濞叉鎹㈠┑濠勭杸闁哄洨鍋熼悡妤呮⒒娴ｄ警鐒炬い鎴濇楠炴劙骞栨担鐟颁患闂佺偨鍎查崜姘焽閻楀牄浜滈柨娑樺缁犳姲 preset as a dsh plugin: given a course's materials, reverse-engineer its instructional design into a self-consistent logical chain. Installs the course-logic-extractor preset into the DSH preset roster automatically.",
+  "description": "闂傚倸鍊搁崐鎼佸磹妞嬪孩顐芥慨姗嗗墻閻掔晫鎲稿鍫罕婵犲痉鏉库偓鏇㈠箠韫囨稑纾挎俊銈傚亾闁靛棙甯掗～婵嬫晲閸涱剙顥氬┑锛勫亼閸婃垿宕瑰ú顏呭殞濡わ絽鍟崑鈺呮煟閹达絾顥夐柣鎰躬閺屽秹宕崟顐ｆ闂佸憡锕╅崹璺侯潖閾忚瀚氶柟缁樺笒濮ｆ劗绱撻崒姘毙㈡俊顐ｇ箓閻ｉ攱瀵奸弶鎴狀唺濠德板€愰崑鎾剁棯閹岀吋闁哄瞼鍠栭獮鎴﹀箛闂堟稒顔勯梻浣告啞閻熴儵鏁冮鍫熷亗妞ゆ劧绠戦悙濠囨煏婵犲繐顩い锔哄劤缁辨挻鎷呯憴鍕弳闂侀潧鐗忛…鍫ワ綖韫囨拋娲敂閸曨剙绁舵俊鐐€栭幐鐐叏鐎靛摜绠旈柨鐔哄У閳锋垿鏌涘☉姗堟敾闁抽攱鍔栫换娑㈠矗婢跺瞼鐤勬繝纰夌磿閺佸鐛崶顒€绾ч悹鎭掑妼閳ь剛鍋涢—鍐Χ閸℃娼戦梺绋款儐閹瑰洤顫忔繝姘＜闁靛牆鎳愭禒鎼佹⒑閸濆嫭婀版繛鍙夘焽閹广垹鈹戞繝鍕澑闂佸搫娲ㄩ崑鐔兼偂濡ゅ懏鈷掑ù锝勮閻掔偓銇勯幋婵囶棦妤犵偞鍔欓獮鏍ㄦ媴閻熼鎮ｉ梻浣哄仺閸庢煡宕滃顒夌劷闁绘鐗勬禍婊堟煥濞戞ê顏╃紒鐘冲Р preset as a dsh plugin: given a course's materials, reverse-engineer its instructional design into a self-consistent logical chain. Installs the course-logic-extractor preset into the DSH preset roster automatically.",
   "main": "lib/index.js",
   "exports": {
     ".": { "default": "./lib/index.js" },
