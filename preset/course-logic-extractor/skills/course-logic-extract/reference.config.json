@@ -1,4 +1,9 @@
 {
   "defaultReference": "reference/高等代数.md",
-  "note": "「参考风格优化版」的默认参考笔记，已内置在技能目录 reference/ 下（随预设一起分发，安装即用）。defaultReference 为相对技能目录的路径；用户会话中明确指定其他参考时，以用户指定为准；要持久化换默认，可修改本字段为绝对路径，或将新笔记放入 reference/ 目录后改为对应相对路径。"
+  "styles": {
+    "数学": "reference/高等代数.md",
+    "工程": "reference/工程类笔记.md",
+    "文科": "reference/文科类笔记.md"
+  },
+  "note": "「参考风格优化版」的参考笔记集，已内置在技能目录 reference/ 下（随预设一起分发，安装即用）。defaultReference 为默认风格（数学），styles 为风格集（数学/工程/文科），均为相对技能目录的路径；用户会话中说「用XX风格」时读取 styles 对应文件，明确指定其他参考时以用户指定为准；要持久化换默认，可修改 defaultReference 为绝对路径，或将新笔记放入 reference/ 目录后改为对应相对路径。"
 }
