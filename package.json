@@ -1,6 +1,6 @@
 {
   "name": "dsh-course-logic-extractor",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "type": "module",
   "description": "「课程逻辑提取器」agent preset as a dsh plugin: given a course's materials, reverse-engineer its instructional design into a self-consistent logical chain. Installs the course-logic-extractor preset into the DSH preset roster automatically.",
   "main": "lib/index.js",
