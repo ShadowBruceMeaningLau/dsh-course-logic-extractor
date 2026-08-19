@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.5.4 — 2026-08-19
+
+### 修复
+- **README 全面更新**：OCR 说明从 DeepSeek-OCR 改为 GLM-OCR（`ZHIPU_API_KEY`/`zhipuApiKey` 配置）、补齐全部 8 个脚本表、styles/ 与 test/ 目录结构、三种输入模式特性介绍（此前 README 停留在 v1.1.0 时代，会误导新环境用户配置错误的 Key）
+
 ## v1.5.3 — 2026-08-19
 
 ### 变更
