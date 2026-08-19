@@ -56,6 +56,38 @@ test('无 mermaid 块时报错', () => {
   const dir = mkdtempSync(path.join(os.tmpdir(), 'm2c-test-'))
   const src = path.join(dir, 'plain.md')
   writeFileSync(src, '# 无图报告\n', 'utf8')
-  assert.throws(() => run([src, path.join(dir, 'x.canvas')]), /未找到 mermaid/)
+  assert.throws(() => run([src, path.join(dir, 'x.canvas')]), /未找到第 1 个 mermaid/)
+  rmSync(dir, { recursive: true, force: true })
+})
+
+test('多 mermaid 块：--index=N 逐个提取', () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'm2c-test-'))
+  const BT = String.fromCharCode(96)
+  const fence = BT.repeat(3)
+  const src = path.join(dir, 'multi.md')
+  writeFileSync(src, [
+    '# 多图报告',
+    '',
+    fence + 'mermaid',
+    'flowchart LR',
+    '    A["第一张图节点"] --> B["第一张图终点"]',
+    fence,
+    '',
+    '## 第二个图',
+    '',
+    fence + 'mermaid',
+    'flowchart TD',
+    '    X["第二张图起点"] --> Y["第二张图终点"]',
+    fence,
+  ].join('\n'), 'utf8')
+  const out0 = path.join(dir, 'fig0.canvas')
+  const out1 = path.join(dir, 'fig1.canvas')
+  run([src, out0, '--index=0'])
+  run([src, out1, '--index=1'])
+  const c0 = JSON.parse(readFileSync(out0, 'utf8'))
+  const c1 = JSON.parse(readFileSync(out1, 'utf8'))
+  assert.ok(c0.nodes.some((n) => n.text.includes('第一张图节点')), 'index=0 取第一个图')
+  assert.ok(c1.nodes.some((n) => n.text.includes('第二张图起点')), 'index=1 取第二个图')
+  assert.throws(() => run([src, path.join(dir, 'x.canvas'), '--index=5']), /未找到第 6 个/)
   rmSync(dir, { recursive: true, force: true })
 })

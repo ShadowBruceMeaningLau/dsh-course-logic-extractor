@@ -1,30 +1,44 @@
 #!/usr/bin/env node
-// mermaid2canvas.mjs — 把 md 报告中的第一个 mermaid 流程图转换为 Obsidian .canvas。
-// Usage: node mermaid2canvas.mjs <md文件> <输出.canvas>
-// - 提取第一个 ```mermaid 块，解析节点/边（支持三种格式）：
+// mermaid2canvas.mjs — 把 md 报告中的 mermaid 流程图转换为 Obsidian .canvas。
+// Usage: node mermaid2canvas.mjs <md文件> <输出.canvas> [--index=N]
+// - 提取第 N 个（默认 0，即第一个）```mermaid 块，解析节点/边（支持三种格式）：
 //   1) 定义+边单行：A["文本"] --> B["文本"]
 //   2) 边带目标文本：B --> C["文本"]（B 的文本已在别处定义）
 //   3) 纯边行：A --> B / A -->|"标签"| B / A -.标签.-> B
+// - 报告含多个 mermaid 块时用 --index=N 逐个转换；
 // - 布局：按依赖分层（入度为 0 为第 0 层），x=层*380，y=层内序号*160；
 // - 输出 Obsidian canvas JSON（nodes/edges，边带 label）。
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-const args = process.argv.slice(2).filter((a) => !a.startsWith('--'))
-const [inFile, outFile] = args
+const args = process.argv.slice(2)
+let index = 0
+const positional = []
+for (const a of args) {
+  if (a.startsWith('--index=')) index = Number(a.slice(8)) || 0
+  else positional.push(a)
+}
+const [inFile, outFile] = positional
 if (!inFile || !outFile) {
-  console.error('usage: node mermaid2canvas.mjs <md文件> <输出.canvas>')
+  console.error('usage: node mermaid2canvas.mjs <md文件> <输出.canvas> [--index=N]')
   process.exit(2)
 }
 
 const BT = String.fromCharCode(96)
 const fence = BT.repeat(3)
 
-function extractMermaid(text) {
-  const s = text.indexOf(fence + 'mermaid')
-  if (s < 0) return ''
-  const e = text.indexOf(fence, s + fence.length)
-  return e < 0 ? text.slice(s + fence.length + 7) : text.slice(s + fence.length + 7, e)
+function extractMermaids(text) {
+  const out = []
+  let pos = 0
+  while (true) {
+    const s = text.indexOf(fence + 'mermaid', pos)
+    if (s < 0) break
+    const e = text.indexOf(fence, s + fence.length)
+    if (e < 0) { out.push(text.slice(s + fence.length + 7)); break }
+    out.push(text.slice(s + fence.length + 7, e))
+    pos = e + fence.length
+  }
+  return out
 }
 
 function convert(mmd) {
@@ -76,8 +90,9 @@ function convert(mmd) {
 }
 
 const text = await readFile(inFile, 'utf8')
-const mmd = extractMermaid(text)
-if (!mmd) { console.error('mermaid2canvas: 未找到 mermaid 块：' + inFile); process.exit(2) }
+const mermaids = extractMermaids(text)
+const mmd = mermaids[index]
+if (!mmd) { console.error('mermaid2canvas: 未找到第 ' + (index + 1) + ' 个 mermaid 块（共 ' + mermaids.length + ' 个）：' + inFile); process.exit(2) }
 const canvas = convert(mmd)
 await writeFile(outFile, canvas + '\n', 'utf8')
 const j = JSON.parse(canvas)
