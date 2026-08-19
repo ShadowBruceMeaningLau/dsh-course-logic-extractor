@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.5.1 — 2026-08-19
+
+### 新增
+- **流程图全 canvas 化**：报告每出现一个 mermaid 流程图即同步产出 `.canvas`（mermaid 保留 + 标注「Canvas 版」）；新增正式脚本 `scripts/mermaid2canvas.mjs`（自动提取 mermaid 块并转换，支持单行定义/带文本边/纯边三种行格式，按依赖分层布局）+ 单元测试；存量补数分学习路线图 canvas
+
 ## v1.5.0 — 2026-08-19
 
 ### 新增
