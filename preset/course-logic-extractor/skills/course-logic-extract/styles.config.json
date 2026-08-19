@@ -1,0 +1,10 @@
+{
+  "defaultStyle": "styles/数学.md",
+  "styles": {
+    "数学": "styles/数学.md",
+    "工程": "styles/工程.md",
+    "文科": "styles/文科.md",
+    "论文": "styles/论文.md"
+  },
+  "note": "「参考风格优化版」的排版风格样本集，已内置在技能目录 styles/ 下（随预设一起分发，安装即用）。defaultStyle 为默认风格（数学），styles 为风格集（数学/工程/文科/论文），均为相对技能目录的路径；用户会话中说「用XX风格」时读取 styles 对应文件，明确指定其他风格样本时以用户指定为准；要持久化换默认，可修改 defaultStyle 为绝对路径，或将新风格样本放入 styles/ 目录后改为对应相对路径。"
+}

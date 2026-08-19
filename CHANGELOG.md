@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.5.2 — 2026-08-19
+
+### 变更
+- **风格样本命名重构**：`reference/` 目录更名为 `styles/`（排版风格样本集，非笔记）；文件更名：`高等代数.md → 数学.md`、`工程类笔记.md → 工程.md`、`文科类笔记.md → 文科.md`、`论文笔记.md → 论文.md`；`reference.config.json → styles.config.json`（字段 `defaultReference → defaultStyle`）；SKILL/USAGE 措辞同步（参考笔记 → 风格样本）
+
 ## v1.5.1 — 2026-08-19
 
 ### 新增
