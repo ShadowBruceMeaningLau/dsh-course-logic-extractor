@@ -1,8 +1,8 @@
 {
   "name": "dsh-course-logic-extractor",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "type": "module",
-  "description": "闂傚倸鍊风欢姘焽瑜嶈灋婵°倕鎳忛崕妤€銆掑锝呬壕濡炪們鍨洪懝楣冩偩閻戣棄鐐婇柍鍝勫暟閸橆垶姊虹拠鎻掑毐缂傚秴妫濆畷浼村箳濡も偓绾惧鏌熼幑鎰靛殭闁告瑥锕悡顐﹀炊閵婏妇顦ョ紓浣规煥閵堢顫忓ú顏勬嵍妞ゆ挾濮寸粭锟犳⒑閸涘﹥鈷愭繛鍙夌箞婵＄敻骞囬弶璺ㄥ€炲銈嗗坊閸嬫捇姊婚崒銈呯仸闁哄本娲樼换婵婄疀閺囩偟鐓楅梻浣侯焾椤戝棝骞愰幖浣瑰仼闁炽儲鍓氬鐗堛亜閿涘嫬绠抰 preset as a dsh plugin: given a course's materials, reverse-engineer its instructional design into a self-consistent logical chain. Installs the course-logic-extractor preset into the DSH preset roster automatically.",
+  "description": "闂傚倸鍊搁崐椋庢濮橆剦鐒界憸宥堢亱濠德板€曢幊蹇涘磿濡も偓閵嗘帒顫濋敐鍛婵＄偑鍊戦崹娲嚌妤ｅ啯鍋╅柣鎴ｆ閻愬﹪鏌嶉崫鍕殶闁告﹩鍨跺铏规嫚閹绘帒姣愮紓鍌氱Т濡繂鐣锋导鏉戠婵°倐鍋撶痪鎯ь煼閺岀喖骞戦幇闈涙闂佸憡鐟ラ敃顏堟偂椤愶箑鐐婇柕濠忓椤︺儳绱撴担瑙勭叆闁靛牏顭堥～蹇撁洪鍕祶濡炪倖鎸炬慨瀵哥箔閿熺姵鈷戦柛娑橈攻閳锋劖绻涢崣澶岀疄濠碉紕鏁婚獮鍥级鐠恒劌鈧偛顪冮妶鍡楀潑闁稿鎹囧濠氬磼閵堝懐浠搁梺鍝勬湰濞叉鎹㈠┑濠勭杸闁哄洨鍋熼悡妤呮⒒娴ｄ警鐒炬い鎴濇楠炴劙骞栨担鐟颁患闂佺偨鍎查崜姘焽閻楀牄浜滈柨娑樺缁犳姲 preset as a dsh plugin: given a course's materials, reverse-engineer its instructional design into a self-consistent logical chain. Installs the course-logic-extractor preset into the DSH preset roster automatically.",
   "main": "lib/index.js",
   "exports": {
     ".": { "default": "./lib/index.js" },
